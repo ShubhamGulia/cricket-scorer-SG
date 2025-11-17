@@ -33,7 +33,8 @@ h2 {
 
 h3 {
   text-align: center;
-  margin-top: 20px;
+  margin-top: 18px;
+  margin-bottom: 6px;
 }
 
 .players-line {
@@ -123,7 +124,7 @@ h3 {
   font-weight: 600;
 }
 
-/* Over history */
+/* Over history + stats */
 
 .over-history {
   margin-top: 18px;
@@ -131,15 +132,38 @@ h3 {
 
 #overHistory,
 #bowlerStats,
-#batsmanStats {
+#batsmanStats,
+#scorecard,
+#previousMatches {
   font-size: 14px;
-  text-align: center;
+  text-align: left;
 }
 
 .over-row,
 .bowler-row,
-.batsman-row {
+.batsman-row,
+.scorecard-block,
+.prev-match {
   margin: 2px 0;
+}
+
+.scorecard-block {
+  border-top: 1px solid #ddd;
+  padding-top: 4px;
+  margin-top: 6px;
+}
+
+.scorecard-heading {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+/* Previous matches */
+
+.prev-match {
+  border-top: 1px solid #ccc;
+  padding-top: 4px;
+  margin-top: 6px;
 }
 
 /* ───────────────────── Modal ───────────────────── */

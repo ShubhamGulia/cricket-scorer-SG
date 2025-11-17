@@ -92,6 +92,10 @@ const state = {
   retiredHurt: {
     A: [],
     B: []
+  },
+  matchSummary: {
+    innings1: null,
+    innings2: null
   }
 };
 
@@ -113,6 +117,8 @@ const els = {
   overHistory: document.getElementById("overHistory"),
   bowlerStats: document.getElementById("bowlerStats"),
   batsmanStats: document.getElementById("batsmanStats"),
+  scorecard: document.getElementById("scorecard"),
+  previousMatches: document.getElementById("previousMatches"),
   resultText: document.getElementById("resultText"),
 
   setupModal: document.getElementById("setupModal"),
@@ -280,6 +286,204 @@ function buildBatsmanStats(teamKey) {
   return list;
 }
 
+// Snapshot current innings for scorecard (bat + bowl)
+function snapshotCurrentInnings() {
+  const battingKey = state.battingTeam;
+  const bowlingKey = battingKey === "A" ? "B" : "A";
+  const battingScore = state.scores[battingKey];
+
+  const battingStatsCopy = JSON.parse(
+    JSON.stringify(state.battingStats[battingKey] || {})
+  );
+  const battingOrderCopy = [...(state.battingOrder[battingKey] || [])];
+
+  // For bowling, use current history for this innings
+  const bowlingStatsList = buildBowlerStats(battingKey);
+
+  const summary = {
+    battingTeamKey: battingKey,
+    bowlingTeamKey: bowlingKey,
+    battingTeam: battingKey === "A" ? state.teamA : state.teamB,
+    bowlingTeam: bowlingKey === "A" ? state.teamA : state.teamB,
+    runs: battingScore.runs,
+    wickets: battingScore.wickets,
+    balls: battingScore.balls,
+    oversText: oversFromBalls(battingScore.balls),
+    battingStats: battingStatsCopy,
+    battingOrder: battingOrderCopy,
+    bowlingStats: bowlingStatsList
+  };
+
+  if (state.innings === 1) {
+    state.matchSummary.innings1 = summary;
+  } else {
+    state.matchSummary.innings2 = summary;
+  }
+}
+
+// Save completed match to localStorage (keep last 4)
+function saveMatchToHistory(resultText) {
+  try {
+    if (!state.matchSummary.innings1 || !state.matchSummary.innings2) return;
+
+    const now = new Date();
+    const payload = {
+      timestamp: now.toISOString(),
+      dateText: now.toLocaleString(),
+      teamA: state.teamA,
+      teamB: state.teamB,
+      result: resultText,
+      summary: state.matchSummary
+    };
+
+    const key = "cricketMatches";
+    let arr = [];
+    try {
+      arr = JSON.parse(localStorage.getItem(key) || "[]");
+      if (!Array.isArray(arr)) arr = [];
+    } catch (e) {
+      arr = [];
+    }
+
+    arr.unshift(payload);
+    if (arr.length > 4) arr = arr.slice(0, 4);
+    localStorage.setItem(key, JSON.stringify(arr));
+  } catch (e) {
+    // ignore storage errors
+    console.error("Failed to save match history", e);
+  }
+}
+
+// Render scorecard for current match
+function renderScorecard() {
+  const container = els.scorecard;
+  container.innerHTML = "";
+
+  const m = state.matchSummary;
+  if (!m.innings1 && !m.innings2) {
+    container.textContent =
+      "Scorecard will appear here after each innings finishes.";
+    return;
+  }
+
+  function renderInningsBlock(inn) {
+    const div = document.createElement("div");
+    div.className = "scorecard-block";
+
+    const title = document.createElement("div");
+    title.className = "scorecard-heading";
+    title.textContent = `${inn.battingTeam} innings – ${inn.runs}/${inn.wickets} in ${inn.oversText} overs`;
+    div.appendChild(title);
+
+    // Batting
+    const batHeader = document.createElement("div");
+    batHeader.style.fontWeight = "600";
+    batHeader.textContent = "Batting:";
+    div.appendChild(batHeader);
+
+    const stats = inn.battingStats || {};
+    const order = inn.battingOrder || Object.keys(stats);
+
+    order.forEach((name) => {
+      const s = stats[name];
+      if (!s) return;
+      const line = document.createElement("div");
+      let tag = "";
+      if (s.out) tag = " (out)";
+      else if (s.retired) tag = " (retired hurt)";
+      line.textContent = `• ${name}: ${s.runs} (${s.balls})${tag}`;
+      div.appendChild(line);
+    });
+
+    // Bowling
+    const bowlHeader = document.createElement("div");
+    bowlHeader.style.fontWeight = "600";
+    bowlHeader.style.marginTop = "4px";
+    bowlHeader.textContent = `Bowling (${inn.bowlingTeam}):`;
+    div.appendChild(bowlHeader);
+
+    (inn.bowlingStats || []).forEach((b) => {
+      const line = document.createElement("div");
+      line.textContent = `• ${b.name}: ${b.overs}.${b.balls} overs, ${b.runs} runs`;
+      div.appendChild(line);
+    });
+
+    return div;
+  }
+
+  if (m.innings1) {
+    const label = document.createElement("div");
+    label.textContent = "Innings 1";
+    label.style.fontWeight = "600";
+    container.appendChild(label);
+    container.appendChild(renderInningsBlock(m.innings1));
+  }
+
+  if (m.innings2) {
+    const label2 = document.createElement("div");
+    label2.textContent = "Innings 2";
+    label2.style.fontWeight = "600";
+    label2.style.marginTop = "6px";
+    container.appendChild(label2);
+    container.appendChild(renderInningsBlock(m.innings2));
+  }
+}
+
+// Render previous 4 matches from localStorage
+function renderPreviousMatches() {
+  const container = els.previousMatches;
+  container.innerHTML = "";
+
+  let arr = [];
+  try {
+    arr = JSON.parse(localStorage.getItem("cricketMatches") || "[]");
+    if (!Array.isArray(arr)) arr = [];
+  } catch (e) {
+    arr = [];
+  }
+
+  if (arr.length === 0) {
+    container.textContent =
+      "Play and finish a match to see it saved here (last 4 matches).";
+    return;
+  }
+
+  arr.forEach((m) => {
+    const div = document.createElement("div");
+    div.className = "prev-match";
+
+    const heading = document.createElement("div");
+    heading.style.fontWeight = "600";
+    heading.textContent = `${m.teamA} vs ${m.teamB}`;
+    div.appendChild(heading);
+
+    const date = document.createElement("div");
+    date.textContent = m.dateText || m.timestamp;
+    div.appendChild(date);
+
+    const result = document.createElement("div");
+    result.textContent = m.result;
+    div.appendChild(result);
+
+    // Quick tiny card summary
+    const s1 = m.summary && m.summary.innings1;
+    const s2 = m.summary && m.summary.innings2;
+
+    if (s1) {
+      const d1 = document.createElement("div");
+      d1.textContent = `• ${s1.battingTeam}: ${s1.runs}/${s1.wickets} in ${s1.oversText} overs`;
+      div.appendChild(d1);
+    }
+    if (s2) {
+      const d2 = document.createElement("div");
+      d2.textContent = `• ${s2.battingTeam}: ${s2.runs}/${s2.wickets} in ${s2.oversText} overs`;
+      div.appendChild(d2);
+    }
+
+    container.appendChild(div);
+  });
+}
+
 // ---------- UI ----------
 
 function refreshUI() {
@@ -317,6 +521,7 @@ function refreshUI() {
     els.currentOverBalls.appendChild(span);
   });
 
+  // over history (current innings)
   els.overHistory.innerHTML = "";
   buildOversSummary(state.battingTeam).forEach((o) => {
     const div = document.createElement("div");
@@ -327,6 +532,7 @@ function refreshUI() {
     els.overHistory.appendChild(div);
   });
 
+  // bowler stats (current innings)
   els.bowlerStats.innerHTML = "";
   buildBowlerStats(state.battingTeam).forEach((b) => {
     const div = document.createElement("div");
@@ -335,6 +541,7 @@ function refreshUI() {
     els.bowlerStats.appendChild(div);
   });
 
+  // batsman stats (current innings)
   els.batsmanStats.innerHTML = "";
   buildBatsmanStats(state.battingTeam).forEach((b) => {
     const div = document.createElement("div");
@@ -345,6 +552,11 @@ function refreshUI() {
     div.textContent = `${b.name}: ${b.runs} (${b.balls})${tag}`;
     els.batsmanStats.appendChild(div);
   });
+
+  // full scorecard for both innings
+  renderScorecard();
+  // previous matches (from localStorage)
+  renderPreviousMatches();
 }
 
 // ---------- History ----------
@@ -447,7 +659,6 @@ function applyExtra(type, batRuns) {
     // ALL runs from a wide are extras
     score.runs += totalExtraRuns;
     score.extras += totalExtraRuns;
-    // batsman does not get anything
   } else {
     // NO-BALL: 1 compulsory extra, batRuns to batsman
     score.runs += totalExtraRuns;
@@ -486,8 +697,7 @@ function undoLast() {
     if (last.extraType === "wide") {
       score.extras -= last.extraRuns;
     } else {
-      // no-ball: we added 1 to extras
-      score.extras -= 1;
+      score.extras -= 1; // only the mandatory no-ball
     }
   }
 
@@ -504,17 +714,24 @@ function checkResultOrEndByOvers() {
 
   if (state.innings === 2 && state.target != null) {
     if (battingScore.runs >= state.target) {
-      showResult(`${currentBattingTeamName()} won by ${
-        10 - battingScore.wickets
-      } wickets`);
+      // ensure innings 2 snapshot
+      snapshotCurrentInnings();
+      showResult(
+        `${currentBattingTeamName()} won by ${
+          10 - battingScore.wickets
+        } wickets`
+      );
       return;
     }
   }
 
   if (battingScore.balls >= state.oversPerInnings * 6) {
     if (state.innings === 1) {
+      // snapshot innings 1 before switching
+      snapshotCurrentInnings();
       endInnings();
     } else {
+      snapshotCurrentInnings();
       const chasingScore = battingScore;
       if (chasingScore.runs >= state.target) {
         showResult(`${currentBattingTeamName()} won`);
@@ -527,8 +744,17 @@ function checkResultOrEndByOvers() {
 }
 
 function showResult(text) {
+  if (state.matchOver) {
+    els.resultText.textContent = text;
+    return;
+  }
   state.matchOver = true;
   els.resultText.textContent = text;
+
+  // match complete only after 2nd innings exists
+  if (state.innings === 2 && state.matchSummary.innings1 && state.matchSummary.innings2) {
+    saveMatchToHistory(text);
+  }
 }
 
 function endInnings() {
@@ -580,6 +806,7 @@ function resetMatch() {
   state.battingStats = { A: {}, B: {} };
   state.battingOrder = { A: [], B: [] };
   state.retiredHurt = { A: [], B: [] };
+  state.matchSummary = { innings1: null, innings2: null };
   initBattingForTeam("A");
   initBattingForTeam("B");
   els.resultText.textContent = "";
@@ -792,7 +1019,7 @@ els.wicketBtn.addEventListener("click", () => {
           runs: 0,
           balls: 0,
           out: false,
-          retired: false
+          retired: true
         };
         p.striker = {
           name: choice,
