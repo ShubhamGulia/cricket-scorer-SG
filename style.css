@@ -144,7 +144,7 @@ h3 {
 
 /* ───────────────────── Modal ───────────────────── */
 
-/* Hidden by default */
+/* Default hidden; JS adds .show */
 .modal {
   position: fixed;
   inset: 0;
@@ -155,7 +155,6 @@ h3 {
   z-index: 999;
 }
 
-/* Only visible when JS adds .show */
 .modal.show {
   display: flex;
 }

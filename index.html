@@ -11,8 +11,8 @@
 <body>
   <div class="app">
     <header>
-      <h1 id="matchTitle">Team A vs Team B</h1>
-      <p id="inningsInfo">Batting: Team A · Innings 1</p>
+      <h1 id="matchTitle">Cupcake vs Chips</h1>
+      <p id="inningsInfo">Batting: Cupcake · Innings 1</p>
       <p id="oversInfo">Overs: 0.0 / 10</p>
       <p id="targetInfo" class="target hidden">Target: 0</p>
     </header>
@@ -40,14 +40,16 @@
       </div>
 
       <div class="buttons-grid">
-        <button class="btn extra-btn" data-type="wide">Wide</button>
+        <button className="btn extra-btn" class="btn extra-btn" data-type="wide">Wide</button>
         <button class="btn extra-btn" data-type="noball">No ball</button>
         <button class="btn wicket-btn" id="wicketBtn">Wicket</button>
       </div>
 
       <div class="actions-row">
         <button class="link-btn" id="undoBtn">Undo Last</button>
-        <button class="link-btn" id="setupBtn">Match Setup / Players</button>
+        <button class="link-btn" id="setupBtn">Match Setup</button>
+        <button class="link-btn" id="editBatsmenBtn">Edit Batsmen</button>
+        <button class="link-btn" id="changeBowlerBtn">Change Bowler</button>
         <button class="link-btn" id="endInningsBtn">End Innings</button>
       </div>
 
@@ -56,18 +58,22 @@
       <section class="over-history">
         <h3>Over history</h3>
         <div id="overHistory"></div>
+
         <h3>Bowler stats</h3>
         <div id="bowlerStats"></div>
+
+        <h3>Batsman stats</h3>
+        <div id="batsmanStats"></div>
       </section>
 
       <p id="resultText" class="result"></p>
     </main>
   </div>
 
-  <!-- Match Setup + Players Modal -->
+  <!-- Match Setup Modal: ONLY teams + overs -->
   <div class="modal" id="setupModal">
     <div class="modal-content">
-      <h2>Match Setup / Players</h2>
+      <h2>Match Setup</h2>
 
       <label>
         Team A
@@ -82,21 +88,6 @@
       <label>
         Overs per innings
         <input type="number" id="oversInput" value="10" min="1" max="50" />
-      </label>
-
-      <label>
-        Striker name
-        <input type="text" id="strikerInput" />
-      </label>
-
-      <label>
-        Non-striker name
-        <input type="text" id="nonStrikerInput" />
-      </label>
-
-      <label>
-        Bowler name
-        <input type="text" id="bowlerInput" />
       </label>
 
       <div class="modal-actions">
