@@ -101,10 +101,12 @@ function handleLegalBall(runs, symbol, isWicket = false) {
   score.runs += runs;
   if (isWicket) score.wickets += 1;
 
+  // legal delivery
   score.balls += 1;
   score.currentOver.push(symbol);
 
-  if (score.currentOver.length === 6) {
+  // ✅ only clear when 6 *legal* balls are done
+  if (score.balls % 6 === 0) {
     score.currentOver = [];
   }
 
@@ -112,38 +114,35 @@ function handleLegalBall(runs, symbol, isWicket = false) {
   refreshUI();
 }
 
+
 function handleExtra(type) {
   if (state.matchOver) return;
 
   const teamKey = state.battingTeam;
   const score = state.scores[teamKey];
 
-  let label = type === "wide" ? "Wd" : "Nb";
+  const label = type === "wide" ? "Wd" : "Nb";
 
   const addBatRuns = parseInt(
     prompt("Runs scored off the bat? (0–6)", "0") || "0",
     10
   );
-  const totalExtraRuns = 1 + (isNaN(addBatRuns) ? 0 : addBatRuns);
+  const validBatRuns = isNaN(addBatRuns) ? 0 : Math.max(0, Math.min(addBatRuns, 6));
+  const totalExtraRuns = 1 + validBatRuns;
 
   pushHistory({
     type: "extra",
     teamKey,
     extraType: type,
     extraRuns: totalExtraRuns,
-    label: label + (addBatRuns ? addBatRuns : "")
+    label: label + (validBatRuns ? validBatRuns : "")
   });
 
   score.runs += totalExtraRuns;
   score.extras += totalExtraRuns;
-  score.currentOver.push(label + (addBatRuns ? addBatRuns : ""));
+  score.currentOver.push(label + (validBatRuns ? validBatRuns : ""));
 
-  // no ball / wide do NOT add to legal balls
-
-  if (score.currentOver.length === 6) {
-    score.currentOver = [];
-  }
-
+  // ❌ no clearing here - extras don't advance the over count
   checkResultOrEndByOvers();
   refreshUI();
 }
