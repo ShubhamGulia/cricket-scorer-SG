@@ -95,7 +95,9 @@ h3 {
 
 .actions-row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-around;
+  gap: 6px;
   margin-top: 14px;
 }
 
@@ -103,7 +105,7 @@ h3 {
   background: none;
   border: none;
   color: #007aff;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .reset-btn {
@@ -128,13 +130,15 @@ h3 {
 }
 
 #overHistory,
-#bowlerStats {
+#bowlerStats,
+#batsmanStats {
   font-size: 14px;
   text-align: center;
 }
 
 .over-row,
-.bowler-row {
+.bowler-row,
+.batsman-row {
   margin: 2px 0;
 }
 
