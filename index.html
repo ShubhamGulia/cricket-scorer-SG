@@ -22,158 +22,330 @@
   <link rel="stylesheet" href="style.css" />
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      padding: 10px;
-      text-align: center;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f3f4f6;
+      display: flex;
+      justify-content: center;
+      padding: 8px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
     }
 
     h1, h2, h3 {
-      margin: 10px 0;
+      margin: 0;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .header-title {
+      font-size: 22px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    .subtext {
+      font-size: 13px;
+      color: #6b7280;
+      text-align: center;
+    }
+
+    .score-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: 6px;
+    }
+
+    #scoreDisplay {
+      font-size: 26px;
+      font-weight: 700;
+    }
+
+    #oversInfo, #targetInfo, #extrasDisplay {
+      font-size: 13px;
+      color: #374151;
+    }
+
+    #batsmenInfo, #bowlerInfo {
+      font-size: 14px;
+      margin: 4px 0;
+      color: #111827;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      text-align: left;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+
+    button {
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      padding: 8px 12px;
+      font-size: 15px;
+      background: #ffffff;
+      cursor: pointer;
+      min-width: 64px;
+    }
+
+    button.run-btn {
+      font-weight: 600;
+    }
+
+    button.extra-btn {
+      min-width: 96px;
+    }
+
+    button#resetBtn {
+      color: #b91c1c;
+      border-color: #fecaca;
+      background: #fef2f2;
+      width: 100%;
+      margin-top: 6px;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
     }
 
     .ball-badge {
       display: inline-block;
-      padding: 4px 6px;
-      margin: 2px;
-      background: #eee;
-      border-radius: 4px;
-      font-size: 14px;
+      padding: 4px 8px;
+      font-size: 13px;
+      border-radius: 999px;
+      background: #e5e7eb;
     }
 
+    .list-text {
+      font-size: 13px;
+      text-align: left;
+      color: #111827;
+    }
+
+    #resultText {
+      text-align: center;
+      font-size: 18px;
+      font-weight: 700;
+      margin-top: 4px;
+      color: #16a34a;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* Modal */
     .modal {
       display: none;
       position: fixed;
-      left: 0; top: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5);
+      inset: 0;
+      background: rgba(0,0,0,0.4);
       align-items: center;
       justify-content: center;
+      z-index: 50;
     }
-    .modal.show { display: flex; }
+    .modal.show {
+      display: flex;
+    }
     .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
       width: 90%;
-      max-width: 350px;
+      max-width: 360px;
     }
-
-    .hidden { display: none; }
-
-    .scorecard-block {
-      padding: 10px;
-      margin: 10px 0;
-      background: #f7f7f7;
-      border-radius: 8px;
+    .modal-content h2 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .modal-content label {
+      font-size: 13px;
+      display: block;
+      margin-top: 6px;
       text-align: left;
     }
-
-    button {
-      padding: 10px 14px;
-      margin: 5px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 16px;
+    .modal-content input {
+      width: 100%;
+      padding: 6px 8px;
+      margin-top: 2px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 14px;
     }
-    button.run-btn { width: 70px; }
-    button.extra-btn { width: 120px; }
-    button#resetBtn { color: red; }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .small-btn {
+      padding: 6px 10px;
+      font-size: 14px;
+      border-radius: 999px;
+    }
+
+    #extraButtons button {
+      margin: 3px;
+      min-width: 36px;
+    }
   </style>
 </head>
 
 <body>
+  <div class="app">
+    <!-- Header + Score -->
+    <div class="card">
+      <div class="header-title" id="matchTitle">Cricket Match</div>
+      <div class="subtext" id="inningsInfo">Batting: –</div>
 
-  <h1 id="matchTitle">Cricket Match</h1>
-  <div id="inningsInfo"></div>
-  <div id="oversInfo"></div>
-  <div id="targetInfo" class="hidden"></div>
+      <div class="score-line">
+        <div id="scoreDisplay">0/0</div>
+        <div>
+          <div id="oversInfo">Overs: 0.0 / 10</div>
+          <div id="targetInfo" class="hidden">Target: –</div>
+        </div>
+      </div>
 
-  <h2 id="scoreDisplay"></h2>
-  <div id="extrasDisplay"></div>
+      <div id="extrasDisplay">Extras: 0</div>
 
-  <p id="batsmenInfo"></p>
-  <p id="bowlerInfo"></p>
+      <div id="batsmenInfo"></div>
+      <div id="bowlerInfo"></div>
+    </div>
 
-  <h3>Current over:</h3>
-  <div id="currentOverBalls"></div>
+    <!-- Current over -->
+    <div class="card">
+      <div class="section-title">Current over</div>
+      <div id="currentOverBalls" class="pill-row"></div>
+    </div>
 
-  <h2>Add Ball</h2>
+    <!-- Controls: Runs + Extras + Wicket -->
+    <div class="card">
+      <div class="section-title">Add ball</div>
+      <div class="button-row">
+        <button class="run-btn" data-runs="0">0</button>
+        <button class="run-btn" data-runs="1">1</button>
+        <button class="run-btn" data-runs="2">2</button>
+        <button class="run-btn" data-runs="3">3</button>
+        <button class="run-btn" data-runs="4">4</button>
+        <button class="run-btn" data-runs="6">6</button>
+      </div>
 
-  <div>
-    <button class="run-btn" data-runs="0">0</button>
-    <button class="run-btn" data-runs="1">1</button>
-    <button class="run-btn" data-runs="2">2</button><br>
-    <button class="run-btn" data-runs="3">3</button>
-    <button class="run-btn" data-runs="4">4</button>
-    <button class="run-btn" data-runs="6">6</button>
+      <div class="button-row">
+        <button class="extra-btn" data-type="wide">Wide</button>
+        <button class="extra-btn" data-type="no-ball">No ball</button>
+        <button id="wicketBtn">Wicket</button>
+      </div>
+
+      <div class="button-row">
+        <button id="undoBtn" class="small-btn">Undo</button>
+        <button id="editBatsmenBtn" class="small-btn">Edit batsmen</button>
+        <button id="changeBowlerBtn" class="small-btn">Edit bowler</button>
+      </div>
+
+      <div class="button-row">
+        <button id="retireStrikerBtn" class="small-btn">Retire striker</button>
+        <button id="retireNonStrikerBtn" class="small-btn">Retire non-striker</button>
+      </div>
+
+      <div class="button-row">
+        <button id="setupBtn" class="small-btn">Match setup</button>
+        <button id="endInningsBtn" class="small-btn">End innings</button>
+      </div>
+
+      <button id="resetBtn">Reset match</button>
+    </div>
+
+    <!-- Over + Stats -->
+    <div class="card">
+      <div class="section-title">Over history (current innings)</div>
+      <div id="overHistory" class="list-text"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Bowler stats (current innings)</div>
+      <div id="bowlerStats" class="list-text"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Batsman stats (current innings)</div>
+      <div id="batsmanStats" class="list-text"></div>
+    </div>
+
+    <!-- Full scorecard -->
+    <div class="card">
+      <div class="section-title">Full scorecard (current match)</div>
+      <div id="scorecard" class="list-text"></div>
+    </div>
+
+    <p id="resultText"></p>
   </div>
-
-  <div>
-    <button class="extra-btn" data-type="wide">Wide</button>
-    <button class="extra-btn" data-type="no-ball">No ball</button>
-    <button id="wicketBtn">Wicket</button>
-  </div>
-
-  <div>
-    <button id="undoBtn">Undo Last</button>
-    <button id="setupBtn">Match Setup</button>
-    <button id="editBatsmenBtn">Edit Batsmen</button><br>
-
-    <button id="changeBowlerBtn">Edit Bowler</button>
-    <button id="endInningsBtn">End Innings</button>
-  </div>
-
-  <div>
-    <button id="retireStrikerBtn">Retire striker (hurt)</button>
-    <button id="retireNonStrikerBtn">Retire non-striker (hurt)</button>
-  </div>
-
-  <button id="resetBtn">Reset Match</button>
-
-  <h3>Over history (current innings)</h3>
-  <div id="overHistory"></div>
-
-  <h3>Bowler stats (current innings)</h3>
-  <div id="bowlerStats"></div>
-
-  <h3>Batsman stats (current innings)</h3>
-  <div id="batsmanStats"></div>
-
-  <h3>Full scorecard (current match)</h3>
-  <div id="scorecard"></div>
-
-  <p id="resultText" style="font-size:20px; font-weight:bold; margin-top:10px;"></p>
 
   <!-- Match Setup Modal -->
   <div class="modal" id="setupModal">
     <div class="modal-content">
-      <h2>Match Setup</h2>
+      <h2>Match setup</h2>
 
-      <label>Team A:</label>
-      <input id="teamAInput" type="text" /><br><br>
+      <label>Team A</label>
+      <input id="teamAInput" type="text" />
 
-      <label>Team B:</label>
-      <input id="teamBInput" type="text" /><br><br>
+      <label>Team B</label>
+      <input id="teamBInput" type="text" />
 
-      <label>Overs per innings:</label>
-      <input id="oversInput" type="number" min="1" max="50" /><br><br>
+      <label>Overs per innings</label>
+      <input id="oversInput" type="number" min="1" max="50" />
 
-      <button id="saveSetupBtn">Save</button>
-      <button id="cancelSetupBtn">Cancel</button>
+      <div class="modal-footer">
+        <button id="cancelSetupBtn" class="small-btn">Cancel</button>
+        <button id="saveSetupBtn" class="small-btn">Save</button>
+      </div>
     </div>
   </div>
 
-  <!-- Extras modal -->
+  <!-- Extras Modal -->
   <div class="modal" id="extraModal">
     <div class="modal-content">
       <h2 id="extraTitle"></h2>
-      <div id="extraButtons"></div>
-      <button id="extraCancelBtn">Cancel</button>
+      <div id="extraButtons" style="margin-top:4px;"></div>
+      <div class="modal-footer">
+        <button id="extraCancelBtn" class="small-btn">Cancel</button>
+      </div>
     </div>
   </div>
 
   <script src="app.js"></script>
-
 </body>
 </html>

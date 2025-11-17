@@ -294,7 +294,7 @@ function refreshUI() {
   els.oversInfo.textContent = `Overs: ${oversFromBalls(
     score.balls
   )} / ${state.oversPerInnings}`;
-  els.scoreDisplay.textContent = `Score: ${score.runs}/${score.wickets}`;
+  els.scoreDisplay.textContent = `${score.runs}/${score.wickets}`;
   els.extrasDisplay.textContent = `Extras: ${score.extras}`;
 
   if (state.innings === 2 && state.target) {
@@ -407,6 +407,44 @@ function renderScorecard() {
   }
 }
 
+// ---------- Bowler selection ----------
+
+function askForNextBowler() {
+  const existing = state.allBowlers;
+  let text = "New over: enter bowler name";
+
+  if (existing.length > 0) {
+    text = `New over\nPrevious bowlers: ${existing.join(
+      ", "
+    )}\nEnter one of them or a new name:`;
+  }
+
+  const input = prompt(text, state.currentBowler);
+  if (input !== null) {
+    state.currentBowler = input.trim();
+    registerCurrentBowler();
+    refreshUI();
+  }
+}
+
+function editBowler() {
+  const existing = state.allBowlers;
+  let text = "Edit bowler name:";
+
+  if (existing.length > 0) {
+    text = `Edit bowler\nPrevious bowlers: ${existing.join(
+      ", "
+    )}\nEnter one of them or a new name:`;
+  }
+
+  const input = prompt(text, state.currentBowler);
+  if (input !== null) {
+    state.currentBowler = input.trim();
+    registerCurrentBowler();
+    refreshUI();
+  }
+}
+
 // ---------- Scoring ----------
 
 function handleLegalBall(runs, symbol, isWicket = false) {
@@ -442,7 +480,17 @@ function handleLegalBall(runs, symbol, isWicket = false) {
   const overEnd = score.balls % 6 === 0;
 
   if (!isWicket && runs % 2 === 1) swapStrike(t);
-  if (overEnd && !isWicket) swapStrike(t);
+
+  if (overEnd && !isWicket) {
+    swapStrike(t);
+    if (
+      score.balls < state.oversPerInnings * 6 &&
+      !state.matchOver &&
+      state.innings <= 2
+    ) {
+      askForNextBowler();
+    }
+  }
 
   checkResultOrEndByOvers();
   refreshUI();
@@ -458,7 +506,7 @@ function applyExtra(type, batRuns) {
   registerCurrentBowler();
 
   const label = type === "wide" ? "Wd" : "Nb";
-  const totalExtraRuns = 1 + batRuns; // 1 compulsory + batRuns
+  const totalExtraRuns = 1 + batRuns;
 
   pushHistory({
     type: "extra",
@@ -471,11 +519,9 @@ function applyExtra(type, batRuns) {
   });
 
   if (type === "wide") {
-    // All runs are extras, no ball faced, no legal ball
     score.runs += totalExtraRuns;
     score.extras += totalExtraRuns;
   } else {
-    // No ball: 1 extra + batRuns to batsman, still NOT a legal ball
     score.runs += totalExtraRuns;
     score.extras += 1;
 
@@ -506,7 +552,7 @@ function undoLast() {
     if (h.extraType === "wide") {
       score.extras -= h.extraRuns;
     } else {
-      score.extras -= 1; // only 1 for the no-ball itself
+      score.extras -= 1;
     }
   }
 
@@ -539,7 +585,9 @@ function handleWicket() {
 
   if (retiredList.length > 0) {
     input = prompt(
-      `New batsman for ${outName}\nChoose from retired hurt: ${retiredList.join(", ")}\nOR enter a new name`
+      `New batsman for ${outName}\nChoose from retired hurt: ${retiredList.join(
+        ", "
+      )}\nOR enter a new name`
     );
   } else {
     input = prompt(`New batsman replacing ${outName}?`);
@@ -560,10 +608,16 @@ function handleWicket() {
     registerBatsman(t, newName);
   }
 
-  // If wicket was on last ball of over, now rotate strike:
-  // old non-striker becomes striker, new batsman becomes non-striker
-  if (state.scores[t].balls % 6 === 0) {
+  const score = state.scores[t];
+  if (score.balls % 6 === 0) {
     swapStrike(t);
+    if (
+      score.balls < state.oversPerInnings * 6 &&
+      !state.matchOver &&
+      state.innings <= 2
+    ) {
+      askForNextBowler();
+    }
   }
 
   refreshUI();
@@ -665,24 +719,6 @@ function resetMatch() {
 
   els.resultText.textContent = "";
   refreshUI();
-}
-
-// ---------- Bowler ----------
-
-function editBowler() {
-  const existing = state.allBowlers;
-  let text = "Edit bowler name:";
-
-  if (existing.length > 0) {
-    text = `Edit bowler\nPrevious: ${existing.join(", ")}\nEnter one of them or a new name:`;
-  }
-
-  const input = prompt(text, state.currentBowler);
-  if (input !== null) {
-    state.currentBowler = input.trim();
-    registerCurrentBowler();
-    refreshUI();
-  }
 }
 
 // ---------- Retired Hurt ----------
