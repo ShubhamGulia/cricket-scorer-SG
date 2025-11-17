@@ -15,7 +15,6 @@ function registerBatsman(teamKey, name) {
   if (!stats[name]) {
     stats[name] = { runs: 0, balls: 0, out: false, retired: false };
   }
-
   if (!order.includes(name)) {
     order.push(name);
   }
@@ -35,9 +34,7 @@ function swapStrike(teamKey) {
 }
 
 function renameBatsman(teamKey, oldName, newName) {
-  if (!oldName || !newName) return;
-  if (oldName === newName) return;
-
+  if (!oldName || !newName || oldName === newName) return;
   const stats = state.battingStats[teamKey];
   const order = state.battingOrder[teamKey];
 
@@ -56,9 +53,12 @@ function renameBatsman(teamKey, oldName, newName) {
   }
 
   const idx = order.indexOf(oldName);
-  if (idx !== -1) order[idx] = newName;
+  if (idx !== -1) {
+    order[idx] = newName;
+  } else if (!order.includes(newName)) {
+    order.push(newName);
+  }
 }
-
 
 // ---------- Global State ----------
 
@@ -100,7 +100,6 @@ const state = {
 
 initBattingForTeam("A");
 initBattingForTeam("B");
-
 
 // ---------- DOM Elements ----------
 
@@ -145,7 +144,6 @@ const els = {
 
 let pendingExtraType = null;
 
-
 // ---------- Helpers ----------
 
 function oversFromBalls(balls) {
@@ -164,6 +162,10 @@ function registerCurrentBowler() {
   const b = state.currentBowler.trim();
   if (!b) return;
   if (!state.allBowlers.includes(b)) state.allBowlers.push(b);
+}
+
+function pushHistory(entry) {
+  state.history.push(entry);
 }
 
 // ---------- Build View Data ----------
@@ -238,7 +240,6 @@ function buildBowlerStats(teamKey) {
     if (!h.bowler) continue;
 
     const name = h.bowler;
-
     if (!stats[name]) stats[name] = { balls: 0, runs: 0 };
 
     if (h.type === "legal") {
@@ -269,27 +270,24 @@ function snapshotCurrentInnings() {
   const teamKey = state.battingTeam;
   const bowlKey = teamKey === "A" ? "B" : "A";
 
-  state.matchSummary[
-    state.innings === 1 ? "innings1" : "innings2"
-    ] = {
-      battingTeam: teamKey === "A" ? state.teamA : state.teamB,
-      bowlingTeam: bowlKey === "A" ? state.teamA : state.teamB,
-      runs: state.scores[teamKey].runs,
-      wickets: state.scores[teamKey].wickets,
-      balls: state.scores[teamKey].balls,
-      oversText: oversFromBalls(state.scores[teamKey].balls),
-      battingStats: JSON.parse(JSON.stringify(state.battingStats[teamKey])),
-      battingOrder: [...state.battingOrder[teamKey]],
-      bowlingStats: buildBowlerStats(teamKey)
-    };
+  state.matchSummary[state.innings === 1 ? "innings1" : "innings2"] = {
+    battingTeam: teamKey === "A" ? state.teamA : state.teamB,
+    bowlingTeam: bowlKey === "A" ? state.teamA : state.teamB,
+    runs: state.scores[teamKey].runs,
+    wickets: state.scores[teamKey].wickets,
+    balls: state.scores[teamKey].balls,
+    oversText: oversFromBalls(state.scores[teamKey].balls),
+    battingStats: JSON.parse(JSON.stringify(state.battingStats[teamKey])),
+    battingOrder: [...state.battingOrder[teamKey]],
+    bowlingStats: buildBowlerStats(teamKey)
+  };
 }
-
 
 // ---------- UI Rendering ----------
 
 function refreshUI() {
-  const teamKey = state.battingTeam;
-  const score = state.scores[teamKey];
+  const t = state.battingTeam;
+  const score = state.scores[t];
 
   els.matchTitle.textContent = `${state.teamA} vs ${state.teamB}`;
   els.inningsInfo.textContent = `Batting: ${currentBattingTeamName()} · Innings ${state.innings}`;
@@ -306,38 +304,34 @@ function refreshUI() {
     els.targetInfo.classList.add("hidden");
   }
 
-  const p = state.players[teamKey];
+  const p = state.players[t];
   els.batsmenInfo.textContent = `Striker: ${p.striker.name} (${p.striker.runs}/${p.striker.balls})  •  Non-striker: ${p.nonStriker.name} (${p.nonStriker.runs}/${p.nonStriker.balls})`;
   els.bowlerInfo.textContent = `Bowler: ${state.currentBowler || "-"}`;
 
-  // Current over
   els.currentOverBalls.innerHTML = "";
-  getCurrentOverEvents(teamKey).forEach(b => {
+  getCurrentOverEvents(t).forEach(b => {
     const s = document.createElement("span");
     s.className = "ball-badge";
     s.textContent = b;
     els.currentOverBalls.appendChild(s);
   });
 
-  // Over history
   els.overHistory.innerHTML = "";
-  buildOversSummary(teamKey).forEach(o => {
+  buildOversSummary(t).forEach(o => {
     const d = document.createElement("div");
     d.textContent = `Over ${o.number} – ${o.bowler}: ${o.balls.join(" ")} (${o.runs})`;
     els.overHistory.appendChild(d);
   });
 
-  // Bowler stats
   els.bowlerStats.innerHTML = "";
-  buildBowlerStats(teamKey).forEach(b => {
+  buildBowlerStats(t).forEach(b => {
     const d = document.createElement("div");
     d.textContent = `${b.name}: ${b.overs}.${b.balls} overs, ${b.runs} runs`;
     els.bowlerStats.appendChild(d);
   });
 
-  // Batsman stats
   els.batsmanStats.innerHTML = "";
-  buildBatsmanStats(teamKey).forEach(b => {
+  buildBatsmanStats(t).forEach(b => {
     const d = document.createElement("div");
     let tag = b.out ? " (out)" : b.retired ? " (retired hurt)" : "";
     d.textContent = `${b.name}: ${b.runs} (${b.balls})${tag}`;
@@ -413,8 +407,7 @@ function renderScorecard() {
   }
 }
 
-
-// ---------- Main Scoring Logic ----------
+// ---------- Scoring ----------
 
 function handleLegalBall(runs, symbol, isWicket = false) {
   if (state.matchOver) return;
@@ -464,27 +457,34 @@ function applyExtra(type, batRuns) {
 
   registerCurrentBowler();
 
-  const extra = 1 + batRuns;
   const label = type === "wide" ? "Wd" : "Nb";
+  const totalExtraRuns = 1 + batRuns; // 1 compulsory + batRuns
 
   pushHistory({
     type: "extra",
     teamKey: t,
     extraType: type,
-    extraRuns: extra,
+    extraRuns: totalExtraRuns,
     batRuns,
     label: label + (batRuns ? batRuns : ""),
     bowler: state.currentBowler
   });
 
-  score.runs += extra;
-  score.extras += 1;
+  if (type === "wide") {
+    // All runs are extras, no ball faced, no legal ball
+    score.runs += totalExtraRuns;
+    score.extras += totalExtraRuns;
+  } else {
+    // No ball: 1 extra + batRuns to batsman, still NOT a legal ball
+    score.runs += totalExtraRuns;
+    score.extras += 1;
 
-  if (batRuns > 0) {
-    p.striker.runs += batRuns;
-    registerBatsman(t, p.striker.name);
-    const bs = state.battingStats[t];
-    bs[p.striker.name].runs += batRuns;
+    if (batRuns > 0) {
+      p.striker.runs += batRuns;
+      registerBatsman(t, p.striker.name);
+      const bs = state.battingStats[t];
+      bs[p.striker.name].runs += batRuns;
+    }
   }
 
   checkResultOrEndByOvers();
@@ -496,7 +496,6 @@ function undoLast() {
   if (!h) return;
 
   const score = state.scores[h.teamKey];
-  const p = state.players[h.teamKey];
 
   if (h.type === "legal") {
     score.runs -= h.runs;
@@ -504,7 +503,11 @@ function undoLast() {
     score.balls--;
   } else {
     score.runs -= h.extraRuns;
-    score.extras -= 1;
+    if (h.extraType === "wide") {
+      score.extras -= h.extraRuns;
+    } else {
+      score.extras -= 1; // only 1 for the no-ball itself
+    }
   }
 
   state.matchOver = false;
@@ -512,10 +515,11 @@ function undoLast() {
   refreshUI();
 }
 
-
-// ---------- Wicket Logic ----------
+// ---------- Wicket ----------
 
 function handleWicket() {
+  if (state.matchOver) return;
+
   const t = state.battingTeam;
   const p = state.players[t];
 
@@ -556,13 +560,16 @@ function handleWicket() {
     registerBatsman(t, newName);
   }
 
-  if (state.scores[t].balls % 6 === 0) swapStrike(t);
+  // If wicket was on last ball of over, now rotate strike:
+  // old non-striker becomes striker, new batsman becomes non-striker
+  if (state.scores[t].balls % 6 === 0) {
+    swapStrike(t);
+  }
 
   refreshUI();
 }
 
-
-// ---------- End innings ----------
+// ---------- End innings / Result ----------
 
 function checkResultOrEndByOvers() {
   const t = state.battingTeam;
@@ -633,7 +640,6 @@ function showResult(txt) {
   els.resultText.textContent = txt;
 }
 
-
 // ---------- Reset ----------
 
 function resetMatch() {
@@ -661,25 +667,23 @@ function resetMatch() {
   refreshUI();
 }
 
-
 // ---------- Bowler ----------
 
 function editBowler() {
   const existing = state.allBowlers;
-  let promptText = "Edit bowler name:";
+  let text = "Edit bowler name:";
 
   if (existing.length > 0) {
-    promptText = `Edit bowler\nPrevious bowlers: ${existing.join(", ")}\nEnter one or new name:`;
+    text = `Edit bowler\nPrevious: ${existing.join(", ")}\nEnter one of them or a new name:`;
   }
 
-  const input = prompt(promptText, state.currentBowler);
+  const input = prompt(text, state.currentBowler);
   if (input !== null) {
     state.currentBowler = input.trim();
     registerCurrentBowler();
     refreshUI();
   }
 }
-
 
 // ---------- Retired Hurt ----------
 
@@ -710,14 +714,12 @@ function retireBatsman(isStriker) {
   refreshUI();
 }
 
-
 // ---------- Extra Modal ----------
 
 function showExtraModal(type) {
   pendingExtraType = type;
-  els.extraTitle.textContent = type === "wide"
-    ? "Wide – runs off bat?"
-    : "No ball – runs off bat?";
+  els.extraTitle.textContent =
+    type === "wide" ? "Wide – runs off bat?" : "No ball – runs off bat?";
 
   els.extraButtons.innerHTML = "";
   for (let i = 0; i <= 6; i++) {
@@ -737,7 +739,6 @@ function hideExtraModal() {
   els.extraModal.classList.remove("show");
   pendingExtraType = null;
 }
-
 
 // ---------- Setup Modal ----------
 
@@ -760,7 +761,6 @@ function saveSetup() {
   resetMatch();
   closeSetup();
 }
-
 
 // ---------- Edit Batsmen ----------
 
@@ -786,12 +786,12 @@ function editBatsmen() {
   refreshUI();
 }
 
-
 // ---------- Event Listeners ----------
 
 document.querySelectorAll(".run-btn").forEach(btn => {
   btn.onclick = () => {
-    handleLegalBall(parseInt(btn.dataset.runs), btn.dataset.runs);
+    const r = parseInt(btn.dataset.runs, 10);
+    handleLegalBall(r, String(r));
   };
 });
 
@@ -817,11 +817,10 @@ els.retireNonStrikerBtn.onclick = () => retireBatsman(false);
 
 els.extraCancelBtn.onclick = hideExtraModal;
 
-
 // ---------- Init ----------
 
 refreshUI();
 
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("service-worker.js");
+  navigator.serviceWorker.register("service-worker.js").catch(() => {});
 }
