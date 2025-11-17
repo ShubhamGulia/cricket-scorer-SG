@@ -6,7 +6,7 @@
 
 body {
   margin: 0;
-  background: #ffffff;
+  background: #f0f0f0;
   color: #111;
 }
 
@@ -63,7 +63,7 @@ h3 {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 .buttons-grid {
@@ -123,10 +123,16 @@ h3 {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 999;
+}
+
+/* IMPORTANT FIX → ensures modal hides correctly */
+.modal.hidden {
+  display: none !important;
 }
 
 .modal-content {
-  background: #f8f8f8;
+  background: #ffffff;
   padding: 18px 16px 16px;
   border-radius: 14px;
   width: 90%;
