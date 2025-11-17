@@ -6,6 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ffffff" />
+
+  <!-- 👇 add these -->
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -40,7 +45,7 @@
       </div>
 
       <div class="buttons-grid">
-        <button className="btn extra-btn" class="btn extra-btn" data-type="wide">Wide</button>
+        <button class="btn extra-btn" data-type="wide">Wide</button>
         <button class="btn extra-btn" data-type="noball">No ball</button>
         <button class="btn wicket-btn" id="wicketBtn">Wicket</button>
       </div>
@@ -51,6 +56,11 @@
         <button class="link-btn" id="editBatsmenBtn">Edit Batsmen</button>
         <button class="link-btn" id="changeBowlerBtn">Change Bowler</button>
         <button class="link-btn" id="endInningsBtn">End Innings</button>
+      </div>
+
+      <div class="actions-row">
+        <button class="link-btn" id="retireStrikerBtn">Retire striker (hurt)</button>
+        <button class="link-btn" id="retireNonStrikerBtn">Retire non-striker (hurt)</button>
       </div>
 
       <button class="reset-btn" id="resetBtn">Reset Match</button>
