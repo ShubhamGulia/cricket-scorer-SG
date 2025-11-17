@@ -62,10 +62,6 @@ h3 {
   font-weight: 600;
 }
 
-.hidden {
-  display: none !important;
-}
-
 .buttons-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -115,20 +111,22 @@ h3 {
   font-weight: 600;
 }
 
-/* Modal */
+/* ───────────────────── Modal ───────────────────── */
+
+/* Hidden by default */
 .modal {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.35);
-  display: flex;
+  display: none;              /* <-- default: hidden */
   justify-content: center;
   align-items: center;
   z-index: 999;
 }
 
-/* IMPORTANT FIX → ensures modal hides correctly */
-.modal.hidden {
-  display: none !important;
+/* Only when we add .show it becomes visible */
+.modal.show {
+  display: flex;
 }
 
 .modal-content {

@@ -251,11 +251,11 @@ function openSetup() {
   els.teamAInput.value = state.teamA;
   els.teamBInput.value = state.teamB;
   els.oversInput.value = state.oversPerInnings;
-  els.setupModal.classList.remove("hidden");
+  els.setupModal.classList.add("show");     // SHOW MODAL
 }
 
 function closeSetup() {
-  els.setupModal.classList.add("hidden");
+  els.setupModal.classList.remove("show");  // HIDE MODAL
 }
 
 function saveSetup() {
