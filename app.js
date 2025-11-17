@@ -1,3 +1,5 @@
+// ------------------ State ------------------
+
 const state = {
   teamA: "Cupcake",
   teamB: "Chips",
@@ -5,13 +7,15 @@ const state = {
   innings: 1, // 1 or 2
   battingTeam: "A", // "A" or "B"
   scores: {
-    A: { runs: 0, wickets: 0, balls: 0, extras: 0, currentOver: [] },
-    B: { runs: 0, wickets: 0, balls: 0, extras: 0, currentOver: [] }
+    A: { runs: 0, wickets: 0, balls: 0, extras: 0 },
+    B: { runs: 0, wickets: 0, balls: 0, extras: 0 }
   },
   target: null,
-  history: [], // for undo
+  history: [],
   matchOver: false
 };
+
+// ------------------ DOM refs ------------------
 
 const els = {
   matchTitle: document.getElementById("matchTitle"),
@@ -22,18 +26,32 @@ const els = {
   extrasDisplay: document.getElementById("extrasDisplay"),
   currentOverBalls: document.getElementById("currentOverBalls"),
   resultText: document.getElementById("resultText"),
+
+  // Setup modal
   setupModal: document.getElementById("setupModal"),
   teamAInput: document.getElementById("teamAInput"),
   teamBInput: document.getElementById("teamBInput"),
   oversInput: document.getElementById("oversInput"),
+  saveSetupBtn: document.getElementById("saveSetupBtn"),
+  cancelSetupBtn: document.getElementById("cancelSetupBtn"),
+
+  // Controls
   undoBtn: document.getElementById("undoBtn"),
   setupBtn: document.getElementById("setupBtn"),
   endInningsBtn: document.getElementById("endInningsBtn"),
   resetBtn: document.getElementById("resetBtn"),
-  saveSetupBtn: document.getElementById("saveSetupBtn"),
-  cancelSetupBtn: document.getElementById("cancelSetupBtn"),
-  wicketBtn: document.getElementById("wicketBtn")
+  wicketBtn: document.getElementById("wicketBtn"),
+
+  // Extra modal
+  extraModal: document.getElementById("extraModal"),
+  extraTitle: document.getElementById("extraTitle"),
+  extraButtons: document.getElementById("extraButtons"),
+  extraCancelBtn: document.getElementById("extraCancelBtn")
 };
+
+let pendingExtraType = null; // "wide" or "noball"
+
+// ------------------ Helpers ------------------
 
 function oversFromBalls(balls) {
   const overs = Math.floor(balls / 6);
@@ -49,6 +67,36 @@ function currentBowlingTeamName() {
   return state.battingTeam === "A" ? state.teamB : state.teamA;
 }
 
+// derive "current over" from history, including wides/no balls
+function getCurrentOverEvents(teamKey) {
+  const battingScore = state.scores[teamKey];
+  const totalLegalBalls = battingScore.balls;
+
+  if (totalLegalBalls === 0) return [];
+
+  let legalNeeded = totalLegalBalls % 6;
+  if (legalNeeded === 0) legalNeeded = 6;
+
+  const events = [];
+  let legalsSeen = 0;
+
+  for (let i = state.history.length - 1; i >= 0 && legalsSeen < legalNeeded; i--) {
+    const h = state.history[i];
+    if (h.teamKey !== teamKey) continue;
+
+    if (h.type === "legal") {
+      events.push(h.symbol);
+      legalsSeen++;
+    } else if (h.type === "extra") {
+      events.push(h.label);
+    }
+  }
+
+  return events.reverse();
+}
+
+// ------------------ UI refresh ------------------
+
 function refreshUI() {
   const battingScore =
     state.battingTeam === "A" ? state.scores.A : state.scores.B;
@@ -62,7 +110,6 @@ function refreshUI() {
   els.scoreDisplay.textContent = `Score: ${battingScore.runs}/${battingScore.wickets}`;
   els.extrasDisplay.textContent = `Extras: ${battingScore.extras}`;
 
-  // Target
   if (state.innings === 2 && state.target != null) {
     els.targetInfo.classList.remove("hidden");
     els.targetInfo.textContent = `Target: ${state.target}`;
@@ -70,19 +117,24 @@ function refreshUI() {
     els.targetInfo.classList.add("hidden");
   }
 
-  // Current over balls
+  // Current over from history
   els.currentOverBalls.innerHTML = "";
-  battingScore.currentOver.forEach((b) => {
+  const currentOverEvents = getCurrentOverEvents(state.battingTeam);
+  currentOverEvents.forEach((text) => {
     const span = document.createElement("span");
     span.className = "ball-badge";
-    span.textContent = b;
+    span.textContent = text;
     els.currentOverBalls.appendChild(span);
   });
 }
 
+// ------------------ History ------------------
+
 function pushHistory(entry) {
   state.history.push(entry);
 }
+
+// ------------------ Scoring ------------------
 
 function handleLegalBall(runs, symbol, isWicket = false) {
   if (state.matchOver) return;
@@ -101,48 +153,32 @@ function handleLegalBall(runs, symbol, isWicket = false) {
   score.runs += runs;
   if (isWicket) score.wickets += 1;
 
-  // legal delivery
   score.balls += 1;
-  score.currentOver.push(symbol);
-
-  // ✅ only clear when 6 *legal* balls are done
-  if (score.balls % 6 === 0) {
-    score.currentOver = [];
-  }
 
   checkResultOrEndByOvers();
   refreshUI();
 }
 
-
-function handleExtra(type) {
+function applyExtra(type, batRuns) {
   if (state.matchOver) return;
 
   const teamKey = state.battingTeam;
   const score = state.scores[teamKey];
 
   const label = type === "wide" ? "Wd" : "Nb";
-
-  const addBatRuns = parseInt(
-    prompt("Runs scored off the bat? (0–6)", "0") || "0",
-    10
-  );
-  const validBatRuns = isNaN(addBatRuns) ? 0 : Math.max(0, Math.min(addBatRuns, 6));
-  const totalExtraRuns = 1 + validBatRuns;
+  const totalExtraRuns = 1 + batRuns;
 
   pushHistory({
     type: "extra",
     teamKey,
     extraType: type,
     extraRuns: totalExtraRuns,
-    label: label + (validBatRuns ? validBatRuns : "")
+    label: label + (batRuns ? batRuns : "")
   });
 
   score.runs += totalExtraRuns;
   score.extras += totalExtraRuns;
-  score.currentOver.push(label + (validBatRuns ? validBatRuns : ""));
 
-  // ❌ no clearing here - extras don't advance the over count
   checkResultOrEndByOvers();
   refreshUI();
 }
@@ -157,47 +193,41 @@ function undoLast() {
     score.runs -= last.runs;
     if (last.isWicket) score.wickets -= 1;
     score.balls -= 1;
-    score.currentOver.pop();
   } else if (last.type === "extra") {
     score.runs -= last.extraRuns;
     score.extras -= last.extraRuns;
-    score.currentOver.pop();
   }
 
-  state.resultText = "";
-  document.getElementById("resultText").textContent = "";
   state.matchOver = false;
+  els.resultText.textContent = "";
   refreshUI();
 }
+
+// ------------------ Result / innings ------------------
 
 function checkResultOrEndByOvers() {
   const battingScore =
     state.battingTeam === "A" ? state.scores.A : state.scores.B;
-  const chasingScore =
-    state.battingTeam === "A" ? state.scores.B : state.scores.A;
 
-  // If innings 2 and target exists, see if chase complete
   if (state.innings === 2 && state.target != null) {
     if (battingScore.runs >= state.target) {
       showResult(`${currentBattingTeamName()} won by ${
         10 - battingScore.wickets
       } wickets`);
+      return;
     }
   }
 
-  // If all overs finished for this innings
   if (battingScore.balls >= state.oversPerInnings * 6) {
     if (state.innings === 1) {
       endInnings();
     } else {
-      // chase ended by overs
-      if (!state.matchOver) {
-        if (battingScore.runs >= state.target) {
-          showResult(`${currentBattingTeamName()} tied or won on last ball`);
-        } else {
-          const diff = state.target - battingScore.runs - 1;
-          showResult(`${currentBowlingTeamName()} won by ${diff} runs`);
-        }
+      const chasingScore = battingScore;
+      if (chasingScore.runs >= state.target) {
+        showResult(`${currentBattingTeamName()} won`);
+      } else {
+        const diff = state.target - chasingScore.runs - 1;
+        showResult(`${currentBowlingTeamName()} won by ${diff} runs`);
       }
     }
   }
@@ -205,7 +235,7 @@ function checkResultOrEndByOvers() {
 
 function showResult(text) {
   state.matchOver = true;
-  document.getElementById("resultText").textContent = text;
+  els.resultText.textContent = text;
 }
 
 function endInnings() {
@@ -216,13 +246,12 @@ function endInnings() {
     state.target = battingScore.runs + 1;
     state.innings = 2;
     state.battingTeam = state.battingTeam === "A" ? "B" : "A";
+    state.history = []; // new innings
     alert(
       `Innings 1 complete: ${battingScore.runs}/${battingScore.wickets}. Target for ${currentBattingTeamName()} is ${state.target}.`
     );
   } else {
-    // manual end of innings 2
-    const chasingScore =
-      state.battingTeam === "A" ? state.scores.A : state.scores.B;
+    const chasingScore = battingScore;
     if (chasingScore.runs >= state.target) {
       showResult(`${currentBattingTeamName()} won`);
     } else {
@@ -236,25 +265,27 @@ function endInnings() {
 function resetMatch() {
   state.innings = 1;
   state.battingTeam = "A";
-  state.scores.A = { runs: 0, wickets: 0, balls: 0, extras: 0, currentOver: [] };
-  state.scores.B = { runs: 0, wickets: 0, balls: 0, extras: 0, currentOver: [] };
+  state.scores.A = { runs: 0, wickets: 0, balls: 0, extras: 0 };
+  state.scores.B = { runs: 0, wickets: 0, balls: 0, extras: 0 };
   state.target = null;
   state.history = [];
   state.matchOver = false;
-  document.getElementById("resultText").textContent = "";
+  els.resultText.textContent = "";
   refreshUI();
 }
 
-// Setup modal
+// ------------------ Modals ------------------
+
+// Match setup
 function openSetup() {
   els.teamAInput.value = state.teamA;
   els.teamBInput.value = state.teamB;
   els.oversInput.value = state.oversPerInnings;
-  els.setupModal.classList.add("show");     // SHOW MODAL
+  els.setupModal.classList.add("show");
 }
 
 function closeSetup() {
-  els.setupModal.classList.remove("show");  // HIDE MODAL
+  els.setupModal.classList.remove("show");
 }
 
 function saveSetup() {
@@ -266,7 +297,36 @@ function saveSetup() {
   closeSetup();
 }
 
-// Event listeners
+// Extra modal
+function showExtraModal(type) {
+  pendingExtraType = type; // "wide" or "noball"
+  els.extraTitle.textContent =
+    type === "wide"
+      ? "Wide – runs off the bat?"
+      : "No ball – runs off the bat?";
+
+  els.extraButtons.innerHTML = "";
+
+  for (let i = 0; i <= 6; i++) {
+    const b = document.createElement("button");
+    b.textContent = i;
+    b.addEventListener("click", () => {
+      applyExtra(pendingExtraType, i);
+      hideExtraModal();
+    });
+    els.extraButtons.appendChild(b);
+  }
+
+  els.extraModal.classList.add("show");
+}
+
+function hideExtraModal() {
+  els.extraModal.classList.remove("show");
+  pendingExtraType = null;
+}
+
+// ------------------ Event listeners ------------------
+
 document.querySelectorAll(".run-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     const runs = parseInt(btn.dataset.runs, 10);
@@ -276,7 +336,8 @@ document.querySelectorAll(".run-btn").forEach((btn) => {
 
 document.querySelectorAll(".extra-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
-    handleExtra(btn.dataset.type);
+    const type = btn.dataset.type; // "wide" or "noball"
+    showExtraModal(type);
   });
 });
 
@@ -291,10 +352,13 @@ els.saveSetupBtn.addEventListener("click", saveSetup);
 els.endInningsBtn.addEventListener("click", endInnings);
 els.resetBtn.addEventListener("click", resetMatch);
 
-// Initial UI
+els.extraCancelBtn.addEventListener("click", hideExtraModal);
+
+// ------------------ Init ------------------
+
 refreshUI();
 
-// PWA: register service worker
+// If you use a service worker for PWA:
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("service-worker.js").catch(console.error);
