@@ -499,9 +499,11 @@ function handleLegalBall(runs, symbol, isWicket = false) {
     bowler: state.currentBowler || null
   });
 
+  // Update team score
   score.runs += runs;
   if (isWicket) score.wickets += 1;
 
+  // Update striker stats
   p.striker.runs += runs;
   p.striker.balls += 1;
 
@@ -510,24 +512,19 @@ function handleLegalBall(runs, symbol, isWicket = false) {
   bs[p.striker.name].runs += runs;
   bs[p.striker.name].balls += 1;
 
+  // Legal ball count
   score.balls += 1;
 
   const overCompleted = score.balls % 6 === 0;
 
+  // Rotate strike on odd runs (but NOT on wicket balls)
   if (!isWicket && runs % 2 === 1) {
     swapStrike(teamKey);
   }
 
-  if (overCompleted) {
+  // End-of-over strike swap ONLY if not a wicket ball
+  if (overCompleted && !isWicket) {
     swapStrike(teamKey);
-  }
-
-  if (
-    overCompleted &&
-    score.balls < state.oversPerInnings * 6 &&
-    !state.matchOver
-  ) {
-    askForNextBowler();
   }
 
   checkResultOrEndByOvers();
@@ -895,17 +892,21 @@ els.wicketBtn.addEventListener("click", () => {
   const p = state.players[teamKey];
   const outName = p.striker.name;
 
+  // Mark striker as out in batting stats
   registerBatsman(teamKey, outName);
   const bs = state.battingStats[teamKey];
   bs[outName].out = true;
   bs[outName].retired = false;
 
+  // If he was in retired list, remove
   state.retiredHurt[teamKey] = state.retiredHurt[teamKey].filter(
     (n) => n !== outName
   );
 
+  // Record the wicket ball (this updates score & balls, but DOES NOT swap strike now)
   handleLegalBall(0, "W", true);
 
+  // Now bring in the next batsman
   const retiredList = state.retiredHurt[teamKey];
   let choice = null;
 
@@ -920,6 +921,7 @@ els.wicketBtn.addEventListener("click", () => {
     if (input && input.trim()) {
       choice = input.trim();
       if (retiredList.includes(choice)) {
+        // Bring back retired hurt player
         const sStats = bs[choice] || {
           runs: 0,
           balls: 0,
@@ -934,6 +936,7 @@ els.wicketBtn.addEventListener("click", () => {
         sStats.retired = false;
         state.retiredHurt[teamKey] = retiredList.filter((n) => n !== choice);
       } else {
+        // New batsman
         p.striker = { name: choice, runs: 0, balls: 0 };
         registerBatsman(teamKey, choice);
       }
@@ -945,6 +948,13 @@ els.wicketBtn.addEventListener("click", () => {
       p.striker = { name: choice, runs: 0, balls: 0 };
       registerBatsman(teamKey, choice);
     }
+  }
+
+  // If the wicket was the LAST ball of the over, rotate strike now.
+  // Old non-striker becomes striker, new guy becomes non-striker.
+  const score = state.scores[teamKey];
+  if (score.balls % 6 === 0) {
+    swapStrike(teamKey);
   }
 
   refreshUI();
