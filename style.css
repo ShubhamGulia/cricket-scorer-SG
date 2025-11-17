@@ -1,0 +1,159 @@
+* {
+  box-sizing: border-box;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "SF Pro Text",
+    sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #ffffff;
+  color: #111;
+}
+
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px 20px 40px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+h1 {
+  font-size: 24px;
+  margin: 4px 0;
+}
+
+h2 {
+  text-align: center;
+  margin: 12px 0 4px;
+}
+
+h3 {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.current-over {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 16px;
+  justify-content: center;
+}
+
+.ball-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ball-badge {
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 13px;
+}
+
+.target {
+  color: #007aff;
+  font-weight: 600;
+}
+
+.hidden {
+  display: none;
+}
+
+.buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.btn {
+  padding: 10px 0;
+  border-radius: 10px;
+  border: 1px solid #333;
+  background: #fff;
+  font-size: 16px;
+}
+
+.extra-btn,
+.wicket-btn {
+  border-color: #007aff;
+  color: #007aff;
+}
+
+.actions-row {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 14px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #007aff;
+  font-size: 16px;
+}
+
+.reset-btn {
+  display: block;
+  margin: 18px auto 0;
+  border: none;
+  background: none;
+  color: #ff3b30;
+  font-size: 17px;
+}
+
+.result {
+  text-align: center;
+  margin-top: 16px;
+  font-weight: 600;
+}
+
+/* Modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: #f8f8f8;
+  padding: 18px 16px 16px;
+  border-radius: 14px;
+  width: 90%;
+  max-width: 380px;
+}
+
+.modal-content h2 {
+  margin-top: 0;
+  text-align: center;
+}
+
+.modal-content label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.modal-content input {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-top: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}

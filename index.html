@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cricket Scoreboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#ffffff" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1 id="matchTitle">Team A vs Team B</h1>
+      <p id="inningsInfo">Batting: Team A · Innings 1</p>
+      <p id="oversInfo">Overs: 0.0 / 10</p>
+      <p id="targetInfo" class="target hidden">Target: 0</p>
+    </header>
+
+    <main>
+      <h2 id="scoreDisplay">Score: 0/0</h2>
+      <p id="extrasDisplay">Extras: 0</p>
+
+      <div class="current-over">
+        <span>Current over:</span>
+        <div id="currentOverBalls" class="ball-list"></div>
+      </div>
+
+      <h3>Add Ball</h3>
+      <div class="buttons-grid">
+        <button class="btn run-btn" data-runs="0">0</button>
+        <button class="btn run-btn" data-runs="1">1</button>
+        <button class="btn run-btn" data-runs="2">2</button>
+        <button class="btn run-btn" data-runs="3">3</button>
+        <button class="btn run-btn" data-runs="4">4</button>
+        <button class="btn run-btn" data-runs="6">6</button>
+      </div>
+
+      <div class="buttons-grid">
+        <button class="btn extra-btn" data-type="wide">Wide</button>
+        <button class="btn extra-btn" data-type="noball">No ball</button>
+        <button class="btn wicket-btn" id="wicketBtn">Wicket</button>
+      </div>
+
+      <div class="actions-row">
+        <button class="link-btn" id="undoBtn">Undo Last</button>
+        <button class="link-btn" id="setupBtn">Match Setup</button>
+        <button class="link-btn" id="endInningsBtn">End Innings</button>
+      </div>
+
+      <button class="reset-btn" id="resetBtn">Reset Match</button>
+
+      <p id="resultText" class="result"></p>
+    </main>
+  </div>
+
+  <!-- Match setup modal -->
+  <div class="modal hidden" id="setupModal">
+    <div class="modal-content">
+      <h2>Match Setup</h2>
+      <label>
+        Team A
+        <input type="text" id="teamAInput" value="Cupcake" />
+      </label>
+      <label>
+        Team B
+        <input type="text" id="teamBInput" value="Chips" />
+      </label>
+      <label>
+        Overs per innings
+        <input type="number" id="oversInput" value="10" min="1" max="50" />
+      </label>
+
+      <div class="modal-actions">
+        <button class="link-btn" id="saveSetupBtn">Save</button>
+        <button class="link-btn" id="cancelSetupBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
