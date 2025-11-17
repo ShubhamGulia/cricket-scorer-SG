@@ -36,6 +36,12 @@ h3 {
   margin-top: 20px;
 }
 
+.players-line {
+  text-align: center;
+  font-size: 14px;
+  margin: 2px 0;
+}
+
 .current-over {
   display: flex;
   align-items: center;
@@ -115,6 +121,21 @@ h3 {
   font-weight: 600;
 }
 
+/* Over history */
+
+.over-history {
+  margin-top: 18px;
+}
+
+#overHistory {
+  font-size: 14px;
+  text-align: center;
+}
+
+.over-row {
+  margin: 2px 0;
+}
+
 /* ───────────────────── Modal ───────────────────── */
 
 /* Hidden by default */
@@ -167,6 +188,7 @@ h3 {
 }
 
 /* Extra runs grid for wide/no ball */
+
 .extra-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

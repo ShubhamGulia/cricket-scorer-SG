@@ -21,6 +21,9 @@
       <h2 id="scoreDisplay">Score: 0/0</h2>
       <p id="extrasDisplay">Extras: 0</p>
 
+      <p id="batsmenInfo" class="players-line"></p>
+      <p id="bowlerInfo" class="players-line"></p>
+
       <div class="current-over">
         <span>Current over:</span>
         <div id="currentOverBalls" class="ball-list"></div>
@@ -44,20 +47,25 @@
 
       <div class="actions-row">
         <button class="link-btn" id="undoBtn">Undo Last</button>
-        <button class="link-btn" id="setupBtn">Match Setup</button>
+        <button class="link-btn" id="setupBtn">Match Setup / Players</button>
         <button class="link-btn" id="endInningsBtn">End Innings</button>
       </div>
 
       <button class="reset-btn" id="resetBtn">Reset Match</button>
 
+      <section class="over-history">
+        <h3>Over history</h3>
+        <div id="overHistory"></div>
+      </section>
+
       <p id="resultText" class="result"></p>
     </main>
   </div>
 
-  <!-- Match Setup Modal -->
+  <!-- Match Setup + Players Modal -->
   <div class="modal" id="setupModal">
     <div class="modal-content">
-      <h2>Match Setup</h2>
+      <h2>Match Setup / Players</h2>
 
       <label>
         Team A
@@ -72,6 +80,21 @@
       <label>
         Overs per innings
         <input type="number" id="oversInput" value="10" min="1" max="50" />
+      </label>
+
+      <label>
+        Striker name
+        <input type="text" id="strikerInput" />
+      </label>
+
+      <label>
+        Non-striker name
+        <input type="text" id="nonStrikerInput" />
+      </label>
+
+      <label>
+        Bowler name
+        <input type="text" id="bowlerInput" />
       </label>
 
       <div class="modal-actions">
