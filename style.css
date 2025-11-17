@@ -127,12 +127,14 @@ h3 {
   margin-top: 18px;
 }
 
-#overHistory {
+#overHistory,
+#bowlerStats {
   font-size: 14px;
   text-align: center;
 }
 
-.over-row {
+.over-row,
+.bowler-row {
   margin: 2px 0;
 }
 

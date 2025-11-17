@@ -42,6 +42,7 @@ const els = {
   bowlerInfo: document.getElementById("bowlerInfo"),
   currentOverBalls: document.getElementById("currentOverBalls"),
   overHistory: document.getElementById("overHistory"),
+  bowlerStats: document.getElementById("bowlerStats"),
   resultText: document.getElementById("resultText"),
 
   // Setup modal
@@ -122,16 +123,21 @@ function getCurrentOverEvents(teamKey) {
   return events.reverse();
 }
 
-// build over summary from history
+// build over summary from history INCLUDING bowler
 function buildOversSummary(teamKey) {
   const overs = [];
   let currentBalls = [];
   let overRuns = 0;
   let legalBalls = 0;
   let overNumber = 1;
+  let currentBowlerForOver = null;
 
   for (const h of state.history) {
     if (h.teamKey !== teamKey) continue;
+
+    if (currentBowlerForOver == null && h.bowler) {
+      currentBowlerForOver = h.bowler;
+    }
 
     if (h.type === "legal") {
       currentBalls.push(h.symbol);
@@ -142,12 +148,14 @@ function buildOversSummary(teamKey) {
         overs.push({
           number: overNumber,
           balls: currentBalls.slice(),
-          runs: overRuns
+          runs: overRuns,
+          bowler: currentBowlerForOver || "-"
         });
         overNumber++;
         currentBalls = [];
         overRuns = 0;
         legalBalls = 0;
+        currentBowlerForOver = null;
       }
     } else if (h.type === "extra") {
       currentBalls.push(h.label);
@@ -160,11 +168,50 @@ function buildOversSummary(teamKey) {
     overs.push({
       number: overNumber,
       balls: currentBalls,
-      runs: overRuns
+      runs: overRuns,
+      bowler: currentBowlerForOver || "-"
     });
   }
 
   return overs;
+}
+
+// build bowler stats from history (runs conceded, overs bowled)
+function buildBowlerStats(teamKey) {
+  const bowlingTeamKey = teamKey === "A" ? "B" : "A";
+  const stats = {}; // { bowlerName: { runs, balls } }
+
+  for (const h of state.history) {
+    if (h.teamKey !== teamKey) continue; // only when this team is batting
+    if (!h.bowler) continue;
+
+    const name = h.bowler;
+    if (!stats[name]) {
+      stats[name] = { runs: 0, balls: 0 };
+    }
+
+    if (h.type === "legal") {
+      stats[name].runs += h.runs;
+      stats[name].balls += 1;
+    } else if (h.type === "extra") {
+      stats[name].runs += h.extraRuns;
+      // wides/no balls: do NOT add legal ball
+    }
+  }
+
+  const list = [];
+  for (const [name, s] of Object.entries(stats)) {
+    const overs = Math.floor(s.balls / 6);
+    const balls = s.balls % 6;
+    list.push({
+      name,
+      runs: s.runs,
+      overs,
+      balls
+    });
+  }
+
+  return list;
 }
 
 // ------------------ UI refresh ------------------
@@ -212,8 +259,20 @@ function refreshUI() {
   overs.forEach((o) => {
     const div = document.createElement("div");
     div.className = "over-row";
-    div.textContent = `Over ${o.number}: ${o.balls.join(" ")} (${o.runs})`;
+    div.textContent = `Over ${o.number} – ${o.bowler}: ${o.balls.join(
+      " "
+    )} (${o.runs})`;
     els.overHistory.appendChild(div);
+  });
+
+  // Bowler stats
+  els.bowlerStats.innerHTML = "";
+  const bowlerStats = buildBowlerStats(state.battingTeam);
+  bowlerStats.forEach((b) => {
+    const div = document.createElement("div");
+    div.className = "bowler-row";
+    div.textContent = `${b.name}: ${b.overs}.${b.balls} overs, ${b.runs} runs`;
+    els.bowlerStats.appendChild(div);
   });
 }
 
@@ -243,7 +302,8 @@ function handleLegalBall(runs, symbol, isWicket = false) {
     runs,
     isWicket,
     symbol,
-    playersBefore
+    playersBefore,
+    bowler: state.currentBowler || null
   });
 
   // update team + striker stats
@@ -291,7 +351,8 @@ function applyExtra(type, batRuns) {
     extraRuns: totalExtraRuns,
     label: label + (batRuns ? batRuns : ""),
     batRuns,
-    playersBefore
+    playersBefore,
+    bowler: state.currentBowler || null
   });
 
   // team extras
@@ -505,8 +566,20 @@ document.querySelectorAll(".extra-btn").forEach((btn) => {
   });
 });
 
+// Wicket: record ball, then ask for new batsman name
 els.wicketBtn.addEventListener("click", () => {
+  if (state.matchOver) return;
+  const teamKey = state.battingTeam;
+  const p = state.players[teamKey];
+  const outName = p.striker.name;
+
   handleLegalBall(0, "W", true);
+
+  const newName = prompt(`New batsman in for ${outName}?`);
+  if (newName && newName.trim()) {
+    p.striker = { name: newName.trim(), runs: 0, balls: 0 };
+  }
+  refreshUI();
 });
 
 els.undoBtn.addEventListener("click", undoLast);
